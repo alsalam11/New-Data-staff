@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>نموذج بيانات الموظف</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/@alumyan/jspdf-arabic"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -72,7 +73,7 @@
     <label>صورة ظهر البطاقة:</label>
     <input type="file" id="idBack" accept="image/*">
 
-    <button type="submit">إرسال وطباعة + تحميل نسخة</button>
+    <button type="submit">إرسال وطباعة PDF + تحميل نسخة</button>
   </form>
 
   <script>
@@ -96,49 +97,40 @@
       const idFront = document.getElementById("idFront").files[0];
       const idBack = document.getElementById("idBack").files[0];
 
-      const readImage = (file) => {
-        return new Promise((resolve) => {
-          if (!file) return resolve("");
+      const readers = [];
+
+      [photoInput, idFront, idBack].forEach((file, index) => {
+        if (file) {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-      };
+          readers.push(new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          }));
+        } else {
+          readers.push(Promise.resolve(""));
+        }
+      });
 
-      Promise.all([readImage(photoInput), readImage(idFront), readImage(idBack)]).then(([photoURL, frontURL, backURL]) => {
+      Promise.all(readers).then(([photoURL, frontURL, backURL]) => {
         generatePDF(data, photoURL, frontURL, backURL);
+        exportCSV(data);
+        sendToGoogleSheet(data);
       });
-
-      // إرسال البيانات إلى Google Sheets
-      fetch("https://script.google.com/macros/s/AKfycbxMB0MNhhhqLBth0QH6HPJm9tfJ7_oZkbFCysgCHL2zAIJ_-Oe7I5H6CnkaKKBMGW6NCg/exec", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      }).then(res => res.text()).then(result => {
-        console.log("✅ تم الإرسال إلى Google Sheets");
-      }).catch(err => {
-        console.error("❌ فشل الإرسال إلى Google Sheets", err);
-      });
-
-      // حفظ نسخة CSV
-      const csvHeader = "الاسم,اسم الأم,تاريخ التولد,الجنس,التحصيل الدراسي,الكلية,الاختصاص,أمر التعيين,المباشرة,المدرسة\n";
-      const csvRow = `${data.fullName},${data.motherName},${data.birthDate},${data.gender},${data.education},${data.institute},${data.specialization},${data.appointmentDate},${data.startDate},${data.school}`;
-      const blob = new Blob([csvHeader + csvRow], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "بيانات_الموظف.csv";
-      link.click();
     });
 
-    async function generatePDF(data, photoURL, frontURL, backURL) {
+    function generatePDF(data, photoURL, frontURL, backURL) {
       const { jsPDF } = window.jspdf;
+      jsPDF.API.events.push(['addFonts', arabicFont]);
       const doc = new jsPDF();
 
-      doc.setFont("Arial");
+      doc.setFont('Amiri');
       doc.setFontSize(12);
-      doc.text("استمارة بيانات الموظف", 105, 20, { align: "center" });
+      let y = 20;
 
-      const labels = {
+      doc.text("استمارة بيانات الموظف", 180, y, { align: "right" });
+      y += 10;
+
+      const fields = {
         fullName: "الاسم الرباعي واللقب",
         motherName: "اسم الأم الثلاثي",
         birthDate: "تاريخ التولد",
@@ -151,24 +143,50 @@
         school: "اسم المدرسة"
       };
 
-      let y = 30;
-      for (let key in data) {
-        doc.text(`${labels[key]}: ${data[key]}`, 20, y);
-        y += 10;
+      for (const key in fields) {
+        doc.text(`${fields[key]}: ${data[key]}`, 180, y, { align: "right" });
+        y += 8;
       }
 
-      const addImage = (label, imgData) => {
-        if (!imgData) return;
-        doc.text(label, 20, y);
-        doc.addImage(imgData, "JPEG", 20, y + 5, 50, 40);
-        y += 50;
-      };
+      function addImage(label, imgData) {
+        if (imgData) {
+          doc.text(label, 180, y, { align: "right" });
+          y += 5;
+          doc.addImage(imgData, "JPEG", 130, y, 50, 50);
+          y += 55;
+        }
+      }
 
-      addImage("الصورة الشخصية:", photoURL);
-      addImage("وجه البطاقة:", frontURL);
-      addImage("ظهر البطاقة:", backURL);
+      addImage("الصورة الشخصية", photoURL);
+      addImage("وجه البطاقة", frontURL);
+      addImage("ظهر البطاقة", backURL);
 
       doc.save("بيانات_الموظف.pdf");
+    }
+
+    function exportCSV(data) {
+      const csvHeader = "الاسم,اسم الأم,تاريخ التولد,الجنس,التحصيل الدراسي,الكلية,الاختصاص,أمر التعيين,المباشرة,المدرسة\n";
+      const csvRow = `${data.fullName},${data.motherName},${data.birthDate},${data.gender},${data.education},${data.institute},${data.specialization},${data.appointmentDate},${data.startDate},${data.school}`;
+      const csvContent = csvHeader + csvRow;
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "بيانات_الموظف.csv";
+      link.click();
+    }
+
+    function sendToGoogleSheet(data) {
+      fetch("https://script.google.com/macros/s/AKfycbxMB0MNhhhqLBth0QH6HPJm9tfJ7_oZkbFCysgCHL2zAIJ_-Oe7I5H6CnkaKKBMGW6NCg/exec", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).then(res => res.text()).then(result => {
+        console.log("✅ تم الإرسال إلى Google Sheets");
+      }).catch(err => {
+        console.error("❌ فشل الإرسال إلى Google Sheets", err);
+      });
     }
   </script>
 </body>
