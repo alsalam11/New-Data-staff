@@ -79,7 +79,348 @@
       e.preventDefault();
 
       const data = {
+        fullName: do<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>نموذج بيانات الموظف</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      direction: rtl;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 6px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>نموذج بيانات الموظف</h2>
+
+  <form id="employeeForm">
+    <label>الاسم الرباعي واللقب:</label>
+    <input type="text" id="fullName" required>
+
+    <label>اسم الأم الثلاثي:</label>
+    <input type="text" id="motherName" required>
+
+    <label>تاريخ التولد:</label>
+    <input type="date" id="birthDate" required>
+
+    <label>الجنس:</label>
+    <select id="gender" required>
+      <option value="">-- اختر --</option>
+      <option value="ذكر">ذكر</option>
+      <option value="أنثى">أنثى</option>
+    </select>
+
+    <label>التحصيل الدراسي:</label>
+    <input type="text" id="education" required>
+
+    <label>اسم الكلية أو المعهد:</label>
+    <input type="text" id="institute" required>
+
+    <label>الاختصاص الدقيق:</label>
+    <input type="text" id="specialization" required>
+
+    <label>تاريخ أمر التعيين:</label>
+    <input type="date" id="appointmentDate" required>
+
+    <label>تاريخ المباشرة لأول مرة:</label>
+    <input type="date" id="startDate" required>
+
+    <label>اسم المدرسة:</label>
+    <input type="text" id="school" required>
+
+    <label>الصورة الشخصية:</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <label>صورة وجه البطاقة:</label>
+    <input type="file" id="idFront" accept="image/*">
+
+    <label>صورة ظهر البطاقة:</label>
+    <input type="file" id="idBack" accept="image/*">
+
+    <button type="submit">إرسال وطباعة + تحميل نسخة</button>
+  </form>
+
+  <script>
+    document.getElementById("employeeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const data = {
         fullName: document.getElementById("fullName").value,
+cument.getElementById("fullName").value,
+        motherName: document.getElementById("motherName").value,
+        birthDate: document.getElementById("birthDate").value,
+        gender: document.getElementById("gender").value,
+        education: document.getElementById("education").value,
+        institute: document.getElementById("institute").value,
+        specialization: document.getElementById("specialization").value,
+        appointmentDate: document.getElementById("appointmentDate").value,
+        startDate: document.getElementById("startDate").value,
+        school: document.getElementById("school").value
+      };
+
+      const photoInput = document.getElementById("photo").files[0];
+      const idFront = document.getElementById("idFront").files[0];
+      const idBack = document.getElementById("idBack").files[0];
+
+      const readers = [];
+
+      [photoInput, idFront, idBack].forEach((file, index) => {
+        if (file) {
+          const reader = new FileReader();
+          readers.push(new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          }));
+        } else {
+          readers.push(Promise.resolve(""));
+        }
+      });
+
+      Promise.all(readers).then(([photoURL, frontURL, backURL]) => {
+        handlePrintAndExport(data, photoURL, frontURL, backURL);
+      });
+    });
+
+    function handlePrintAndExport(data, photoURL, frontURL, backURL) {
+      const printWindow = window.open('', '', 'height=800,width=900');
+      printWindow.document.write('<html><head><title>استمارة بيانات الموظف</title><style>body{font-family:Arial;direction:rtl;padding:20px;} h2{margin-bottom:20px;} p{margin:5px 0;} img{margin-top:10px;max-width:200px;}</style></head><body>');
+      printWindow.document.write('<h2>استمارة بيانات الموظف</h2>');
+
+      if (photoURL) {
+        printWindow.document.write('<p><strong>الصورة الشخصية:</strong><br><img src="' + photoURL + '"></p>');
+      }
+      if (frontURL) {
+        printWindow.document.write('<p><strong>وجه البطاقة:</strong><br><img src="' + frontURL + '"></p>');
+      }
+      if (backURL) {
+        printWindow.document.write('<p><strong>ظهر البطاقة:</strong><br><img src="' + backURL + '"></p>');
+      }
+
+      const labels = {
+        fullName: "الاسم الرباعي واللقب",
+        motherName: "اسم الأم الثلاثي",
+        birthDate: "تاريخ التولد",
+        gender: "الجنس",
+        education: "التحصيل الدراسي",
+        institute: "اسم الكلية أو المعهد",
+        specialization: "الاختصاص الدقيق",
+        appointmentDate: "تاريخ أمر التعيين",
+        startDate: "تاريخ المباشرة لأول مرة",
+        school: "اسم المدرسة"
+      };
+
+      for (let key in data) {
+        printWindow.document.write('<p><strong>' + labels[key] + ':</strong> ' + data[key] + '</p>');
+      }
+
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+
+      const csvHeader = "الاسم,اسم الأم,تاريخ التولد,الجنس,التحصيل الدراسي,الكلية,الاختصاص,أمر التعيين,المباشرة,المدرسة
+";
+      const csvRow = `${data.fullName},${data.motherName},${data.birthDate},${data.gender},${data.education},${data.institute},${data.specialization},${data.appointmentDate},${data.startDate},${data.school}`;
+      const csvContent = csvHeader + csvRow;
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "بيانات_الموظف.csv";
+      link.click();
+
+      fetch("https://script.google.com/macros/s/AKfycbxMB0MNhhhqLBth0QH6HPJm9tfJ7_oZkbFCysgCHL2zAIJ_-Oe7I5H6CnkaKKBMGW6NCg/exec", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).then(res => res.text()).then(result => {
+        console.log("✅ تم الإرسال إلى Google Sheets");
+      }).catch(err => {
+        console.error("❌ فشل الإرسال إلى Google Sheets", err);
+      });
+    }
+  </script>
+</body>
+</html<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>نموذج بيانات الموظف</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      direction: rtl;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 6px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>نموذج بيانات الموظف</h2>
+
+  <form id="employeeForm">
+    <label>الاسم الرباعي واللقب:</label>
+    <input type="text" id="fullName" required>
+
+    <label>اسم الأم الثلاثي:</label>
+    <input type="text" id="motherName" required>
+
+    <label>تاريخ التولد:</label>
+    <input type="date" id="birthDate" required>
+
+    <label>الجنس:</label>
+    <select id="gender" required>
+      <option value="">-- اختر --</option>
+      <option value="ذكر">ذكر</option>
+      <option value="أنثى">أنثى</option>
+    </select>
+
+    <label>التحصيل الدراسي:</label>
+    <input type="text" id="education" required>
+
+    <label>اسم الكلية أو المعهد:</label>
+    <input type="text" id="institute" required>
+
+    <label>الاختصاص الدقيق:</label>
+    <input type="text" id="specialization" required>
+
+    <label>تاريخ أمر التعيين:</label>
+    <input type="date" id="appointmentDate" required>
+
+    <label>تاريخ المباشرة لأول مرة:</label>
+    <input type="date" id="startDate" required>
+
+    <label>اسم المدرسة:</label>
+    <input type="text" id="school" required>
+
+    <label>الصورة الشخصية:</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <label>صورة وجه البطاقة:</label>
+    <input type="file" id="idFront" accept="image/*">
+
+    <label>صورة ظهر البطاقة:</label>
+    <input type="file" id="idBack" accept="image/*">
+
+    <button type="submit">إرسال وطباعة + تحميل نسخة</button>
+  </form>
+
+  <script>
+    document.getElementById("employeeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const data = {
+        fullName: do<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>نموذج بيانات الموظف</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      direction: rtl;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 6px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>نموذج بيانات الموظف</h2>
+
+  <form id="employeeForm">
+    <label>الاسم الرباعي واللقب:</label>
+    <input type="text" id="fullName" required>
+
+    <label>اسم الأم الثلاثي:</label>
+    <input type="text" id="motherName" required>
+
+    <label>تاريخ التولد:</label>
+    <input type="date" id="birthDate" required>
+
+    <label>الجنس:</label>
+    <select id="gender" required>
+      <option value="">-- اختر --</option>
+      <option value="ذكر">ذكر</option>
+      <option value="أنثى">أنثى</option>
+    </select>
+
+    <label>التحصيل الدراسي:</label>
+    <input type="text" id="education" required>
+
+    <label>اسم الكلية أو المعهد:</label>
+    <input type="text" id="institute" required>
+
+    <label>الاختصاص الدقيق:</label>
+    <input type="text" id="specialization" required>
+
+    <label>تاريخ أمر التعيين:</label>
+    <input type="date" id="appointmentDate" required>
+
+    <label>تاريخ المباشرة لأول مرة:</label>
+    <input type="date" id="startDate" required>
+
+    <label>اسم المدرسة:</label>
+    <input type="text" id="school" required>
+
+    <label>الصورة الشخصية:</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <label>صورة وجه البطاقة:</label>
+    <input type="file" id="idFront" accept="image/*">
+
+    <label>صورة ظهر البطاقة:</label>
+    <input type="file" id="idBack" accept="image/*">
+
+    <button type="submit">إرسال وطباعة + تحميل نسخة</button>
+  </form>
+
+  <script>
+    document.getElementById("employeeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const data = {
+        fullName: document.getElementById("fullName").value,
+cument.getElementById("fullName").value,
         motherName: document.getElementById("motherName").value,
         birthDate: document.getElementById("birthDate").value,
         gender: document.getElementById("gender").value,
@@ -176,3 +517,4 @@
   </script>
 </body>
 </html>
+>
