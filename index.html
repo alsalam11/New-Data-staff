@@ -1,136 +1,81 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>نموذج بيانات الموظف</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/@alumyan/jspdf-arabic"></script>
+  <script>
+    // خط Amiri مضمن مسبقاً
+    window.jsPDF = window.jspdf;
+    window.jspdf.jsPDF.API.events.push(['addFonts', function () {
+      this.addFileToVFS("Amiri-Regular.ttf", "AAEAAAASAQAABAAgR0RFRrRCsIIAAZj8AAACYkdQT1P..."); // استبدل ببيانات Base64 الكاملة من ملف amiri-font.js
+      this.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+    }]);
+  </script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      direction: rtl;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-    }
-    input, select {
-      width: 100%;
-      padding: 6px;
-      margin-top: 5px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-    }
+    body { font-family: Arial; direction: rtl; padding: 20px; }
+    label, input, select, button { display: block; width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h2>نموذج بيانات الموظف</h2>
-
   <form id="employeeForm">
     <label>الاسم الرباعي واللقب:</label>
     <input type="text" id="fullName" required>
-
     <label>اسم الأم الثلاثي:</label>
     <input type="text" id="motherName" required>
-
     <label>تاريخ التولد:</label>
     <input type="date" id="birthDate" required>
-
     <label>الجنس:</label>
     <select id="gender" required>
       <option value="">-- اختر --</option>
       <option value="ذكر">ذكر</option>
       <option value="أنثى">أنثى</option>
     </select>
-
     <label>التحصيل الدراسي:</label>
     <input type="text" id="education" required>
-
     <label>اسم الكلية أو المعهد:</label>
     <input type="text" id="institute" required>
-
     <label>الاختصاص الدقيق:</label>
     <input type="text" id="specialization" required>
-
     <label>تاريخ أمر التعيين:</label>
     <input type="date" id="appointmentDate" required>
-
     <label>تاريخ المباشرة لأول مرة:</label>
     <input type="date" id="startDate" required>
-
     <label>اسم المدرسة:</label>
     <input type="text" id="school" required>
-
     <label>الصورة الشخصية:</label>
     <input type="file" id="photo" accept="image/*">
-
-    <label>صورة وجه البطاقة:</label>
+    <label>وجه البطاقة:</label>
     <input type="file" id="idFront" accept="image/*">
-
-    <label>صورة ظهر البطاقة:</label>
+    <label>ظهر البطاقة:</label>
     <input type="file" id="idBack" accept="image/*">
-
-    <button type="submit">إرسال وطباعة PDF + تحميل نسخة</button>
-  </form>
-
-  <script>
-    document.getElementById("employeeForm").addEventListener("submit", function(e) {
+    <button type="submit">إرسال وتحميل PDF + CSV</button>
+  </form>  <script>
+    document.getElementById("employeeForm").addEventListener("submit", async e => {
       e.preventDefault();
+      const keys = ["fullName", "motherName", "birthDate", "gender", "education", "institute", "specialization", "appointmentDate", "startDate", "school"];
+      const data = {};
+      keys.forEach(k => data[k] = document.getElementById(k).value);
 
-      const data = {
-        fullName: document.getElementById("fullName").value,
-        motherName: document.getElementById("motherName").value,
-        birthDate: document.getElementById("birthDate").value,
-        gender: document.getElementById("gender").value,
-        education: document.getElementById("education").value,
-        institute: document.getElementById("institute").value,
-        specialization: document.getElementById("specialization").value,
-        appointmentDate: document.getElementById("appointmentDate").value,
-        startDate: document.getElementById("startDate").value,
-        school: document.getElementById("school").value
-      };
+      const imgs = await Promise.all(["photo", "idFront", "idBack"].map(id => {
+        const f = document.getElementById(id).files[0];
+        if (!f) return null;
+        return new Promise(res => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.readAsDataURL(f);
+        });
+      }));
 
-      const photoInput = document.getElementById("photo").files[0];
-      const idFront = document.getElementById("idFront").files[0];
-      const idBack = document.getElementById("idBack").files[0];
-
-      const readers = [];
-
-      [photoInput, idFront, idBack].forEach((file, index) => {
-        if (file) {
-          const reader = new FileReader();
-          readers.push(new Promise((resolve) => {
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(file);
-          }));
-        } else {
-          readers.push(Promise.resolve(""));
-        }
-      });
-
-      Promise.all(readers).then(([photoURL, frontURL, backURL]) => {
-        generatePDF(data, photoURL, frontURL, backURL);
-        exportCSV(data);
-        sendToGoogleSheet(data);
-      });
-    });
-
-    function generatePDF(data, photoURL, frontURL, backURL) {
       const { jsPDF } = window.jspdf;
-      jsPDF.API.events.push(['addFonts', arabicFont]);
       const doc = new jsPDF();
-
-      doc.setFont('Amiri');
+      doc.setFont("Amiri");
       doc.setFontSize(12);
       let y = 20;
-
       doc.text("استمارة بيانات الموظف", 180, y, { align: "right" });
       y += 10;
 
-      const fields = {
+      const labels = {
         fullName: "الاسم الرباعي واللقب",
         motherName: "اسم الأم الثلاثي",
         birthDate: "تاريخ التولد",
@@ -143,51 +88,30 @@
         school: "اسم المدرسة"
       };
 
-      for (const key in fields) {
-        doc.text(`${fields[key]}: ${data[key]}`, 180, y, { align: "right" });
+      keys.forEach(k => {
+        doc.text(labels[k] + ": " + data[k], 180, y, { align: "right" });
         y += 8;
-      }
+      });
 
-      function addImage(label, imgData) {
-        if (imgData) {
-          doc.text(label, 180, y, { align: "right" });
-          y += 5;
-          doc.addImage(imgData, "JPEG", 130, y, 50, 50);
-          y += 55;
-        }
-      }
-
-      addImage("الصورة الشخصية", photoURL);
-      addImage("وجه البطاقة", frontURL);
-      addImage("ظهر البطاقة", backURL);
+      [["الصورة الشخصية", imgs[0]], ["وجه البطاقة", imgs[1]], ["ظهر البطاقة", imgs[2]]]
+        .forEach(([lbl, img]) => {
+          if (img) {
+            doc.text(lbl, 180, y, { align: "right" });
+            y += 5;
+            doc.addImage(img, "JPEG", 130, y, 50, 50);
+            y += 55;
+          }
+        });
 
       doc.save("بيانات_الموظف.pdf");
-    }
 
-    function exportCSV(data) {
-      const csvHeader = "الاسم,اسم الأم,تاريخ التولد,الجنس,التحصيل الدراسي,الكلية,الاختصاص,أمر التعيين,المباشرة,المدرسة\n";
-      const csvRow = `${data.fullName},${data.motherName},${data.birthDate},${data.gender},${data.education},${data.institute},${data.specialization},${data.appointmentDate},${data.startDate},${data.school}`;
-      const csvContent = csvHeader + csvRow;
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "بيانات_الموظف.csv";
-      link.click();
-    }
-
-    function sendToGoogleSheet(data) {
-      fetch("https://script.google.com/macros/s/AKfycbxMB0MNhhhqLBth0QH6HPJm9tfJ7_oZkbFCysgCHL2zAIJ_-Oe7I5H6CnkaKKBMGW6NCg/exec", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      }).then(res => res.text()).then(result => {
-        console.log("✅ تم الإرسال إلى Google Sheets");
-      }).catch(err => {
-        console.error("❌ فشل الإرسال إلى Google Sheets", err);
-      });
-    }
-  </script>
-</body>
+      const csvHeader = keys.map(k => labels[k]).join(",") + "\n";
+      const csvRow = keys.map(k => data[k]).join(",") + "\n";
+      const blob = new Blob([csvHeader + csvRow], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "بيانات_الموظف.csv";
+      a.click();
+    });
+  </script></body>
 </html>
