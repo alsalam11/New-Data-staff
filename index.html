@@ -1,119 +1,164 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>نموذج بيانات الموظف</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-arabic@1.0.0/dist/jspdf-arabic.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      direction: rtl;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-    }
-    input, select {
-      width: 100%;
-      padding: 6px;
-      margin-top: 5px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>التحقق واستكمال بيانات المعلم</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; background: #f5f5f5; }
+  .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #ccc; }
+  label, input, button { width: 100%; margin: 10px 0; font-size: 16px; }
+  input { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+  button { background: #005aab; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+  .hidden { display: none; }
+  .error { color: red; margin-top: 5px; }
+</style>
 </head>
 <body>
 
-  <h2>نموذج بيانات الموظف</h2>
+<div class="container" id="verify-section">
+  <h2 style="text-align:center;">التحقق من كادر المدرسة</h2>
+  <label for="school">اسم المدرسة:</label>
+  <input type="text" id="school" placeholder="مثال: مدرسة تل السلام الابتدائية للبنين" />
+  <label for="teacher">اسم المعلم:</label>
+  <input type="text" id="teacher" placeholder="مثال: عباس جاسم راضي" />
+  <button id="verify-btn">تحقق</button>
+  <p id="error-msg" class="error"></p>
+</div>
 
-  <form id="employeeForm">
-    <label>الاسم الرباعي واللقب:</label>
-    <input type="text" id="fullName" required>
-
-    <label>اسم الأم الثلاثي:</label>
-    <input type="text" id="motherName" required>
-
-    <label>تاريخ التولد:</label>
-    <input type="date" id="birthDate" required>
-
-    <label>الجنس:</label>
-    <select id="gender" required>
-      <option value="">-- اختر --</option>
-      <option value="ذكر">ذكر</option>
-      <option value="أنثى">أنثى</option>
-    </select>
-
-    <label>التحصيل الدراسي:</label>
-    <input type="text" id="education" required>
-
-    <label>اسم الكلية أو المعهد:</label>
-    <input type="text" id="institute" required>
-
-    <label>الاختصاص الدقيق:</label>
-    <input type="text" id="specialization" required>
-
-    <label>تاريخ أمر التعيين:</label>
-    <input type="date" id="appointmentDate" required>
-
-    <label>تاريخ المباشرة لأول مرة:</label>
-    <input type="date" id="startDate" required>
-
-    <label>اسم المدرسة:</label>
-    <input type="text" id="school" required>
-
-    <button type="submit">إرسال وتصدير PDF وCSV</button>
+<div class="container hidden" id="form-section">
+  <h2 style="text-align:center;">استمارة بيانات المعلم</h2>
+  <form id="teacher-form">
+    <label>الاسم الرباعي واللقب:</label><input name="fullname" required />
+    <label>اسم الأم الثلاثي:</label><input name="mother" required />
+    <label>تاريخ التولد:</label><input type="date" name="dob" required />
+    <label>محل الولادة:</label><input name="birthplace" required />
+    <label>رقم البطاقة الوطنية الموحدة:</label><input name="id" required />
+    <label>تاريخ اصدارها:</label><input type="date" name="idIssue" required />
+    <label>الجهة الصادرة منها:</label><input name="issuer" required />
+    <label>الحالة الزوجية:</label><input name="status" required />
+    <label>اسم الزوج/ة:</label><input name="spouse" />
+    <label>عنوان السكن (المحافظة - القضاء - الحي):</label><input name="address" required />
+    <label>التحصيل الدراسي:</label><input name="education" required />
+    <label>الكلية أو المعهد:</label><input name="institute" required />
+    <label>تاريخ التعيين:</label><input type="date" name="hire" required />
+    <label>تاريخ المباشرة لأول مرة:</label><input type="date" name="first" required />
+    <label>تاريخ المباشرة في المدرسة الحالية:</label><input type="date" name="current" required />
+    <button type="submit">توليد PDF رسمي</button>
   </form>
+</div>
 
-  <script>
-    document.getElementById("employeeForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-      const data = {
-        fullName: document.getElementById("fullName").value,
-        motherName: document.getElementById("motherName").value,
-        birthDate: document.getElementById("birthDate").value,
-        gender: document.getElementById("gender").value,
-        education: document.getElementById("education").value,
-        institute: document.getElementById("institute").value,
-        specialization: document.getElementById("specialization").value,
-        appointmentDate: document.getElementById("appointmentDate").value,
-        startDate: document.getElementById("startDate").value,
-        school: document.getElementById("school").value
-      };
+<script>
+  const المعلمين = [
+    { المدرسة: "مدرسة تل السلام الابتدائية للبنين", الاسم: "عباس جاسم راضي" },
+    { المدرسة: "مدرسة تل السلام الابتدائية للبنين", الاسم: "علاء ناصر كامل" },
+    { المدرسة: "مدرسة تل السلام الابتدائية للبنين", الاسم: "اسماء محمد فرحان" },
+    { المدرسة: "مدرسة تل السلام الابتدائية للبنين", الاسم: "ظاهر حمدان شنبار" },
+    { المدرسة: "مدرسة تل السلام الابتدائية للبنين", الاسم: "عيسى محمد فارس" }
+  ];
 
-      // 🟦 1. إنشاء PDF يدعم العربية
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.setFont("Amiri", "normal");
-      doc.setFontSize(14);
+  const verifyBtn = document.getElementById("verify-btn");
+  const errorMsg = document.getElementById("error-msg");
+  const verifySection = document.getElementById("verify-section");
+  const formSection = document.getElementById("form-section");
 
-      let y = 20;
-      doc.text("استمارة بيانات الموظف", 105, y, { align: "center" });
-      y += 10;
+  verifyBtn.addEventListener("click", () => {
+    const schoolVal = document.getElementById("school").value.trim().toLowerCase();
+    const teacherVal = document.getElementById("teacher").value.trim().toLowerCase();
 
-      for (let [key, value] of Object.entries(data)) {
-        const label = document.querySelector("label[for=" + key + "]")?.innerText || "";
-        const labelText = document.querySelector(`label[for="${key}"]`)?.innerText || "";
-        const fullText = `${key.replace(/([A-Z])/g, ' $1')}: ${value}`;
-        doc.text(fullText, 20, y, { align: "right" });
-        y += 10;
+    const موجود = المعلمين.some(entry =>
+      entry.المدرسة.trim().toLowerCase() === schoolVal &&
+      entry.الاسم.trim().toLowerCase() === teacherVal
+    );
+
+    if (موجود) {
+      errorMsg.textContent = "";
+      verifySection.classList.add("hidden");
+      formSection.classList.remove("hidden");
+      document.querySelector("input[name='fullname']").value = document.getElementById("teacher").value.trim();
+    } else {
+      errorMsg.textContent = "❌ اسم المدرسة أو المعلم غير صحيح. حاول مرة أخرى.";
+    }
+  });
+
+  document.getElementById("teacher-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const margin = 40;
+    let y = margin;
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // إطار الصفحة
+    doc.setDrawColor(0);
+    doc.setLineWidth(1);
+    doc.rect(margin / 2, margin / 2, pageWidth - margin, pageHeight - margin);
+
+    // شعار الوزارة (نصّي)
+    doc.setFontSize(24);
+    doc.text("وزارة التربية العراقية", pageWidth / 2, y, { align: "center" });
+    y += 30;
+
+    // ترويسة رسمية
+    doc.setFontSize(18);
+    doc.text("المديرية العامة للتربية في محافظة البصرة", pageWidth / 2, y, { align: "center" });
+    y += 40;
+
+    // عنوان الاستمارة
+    doc.setFontSize(16);
+    doc.text("استمارة بيانات المعلم", pageWidth / 2, y, { align: "center" });
+    y += 40;
+
+    const formData = new FormData(e.target);
+
+    const labels = [
+      "الاسم الرباعي واللقب",
+      "اسم الأم الثلاثي",
+      "تاريخ التولد",
+      "محل الولادة",
+      "رقم البطاقة الوطنية الموحدة",
+      "تاريخ اصدارها",
+      "الجهة الصادرة منها",
+      "الحالة الزوجية",
+      "اسم الزوج/ة",
+      "عنوان السكن (المحافظة - القضاء - الحي)",
+      "التحصيل الدراسي",
+      "الكلية أو المعهد",
+      "تاريخ التعيين",
+      "تاريخ المباشرة لأول مرة",
+      "تاريخ المباشرة في المدرسة الحالية"
+    ];
+
+    const fields = [
+      "fullname", "mother", "dob", "birthplace", "id", "idIssue", "issuer", "status",
+      "spouse", "address", "education", "institute", "hire", "first", "current"
+    ];
+
+    doc.setFontSize(14);
+
+    for (let i = 0; i < labels.length; i++) {
+      let value = formData.get(fields[i]);
+      if (fields[i].includes("dob") || fields[i].includes("Issue") || fields[i].includes("hire") || fields[i].includes("first") || fields[i].includes("current")) {
+        if (value) {
+          const d = new Date(value);
+          value = d.toLocaleDateString('ar-EG');
+        }
       }
+      doc.text(`${labels[i]}: ${value || "غير محدد"}`, margin, y);
+      y += 25;
+      if (y > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    }
 
-      doc.save("بيانات_الموظف.pdf");
+    doc.save("استمارة_المعلم.pdf");
+  });
+</script>
 
-      // 🟨 2. إنشاء CSV
-      const csvHeader = "الاسم,اسم الأم,تاريخ التولد,الجنس,التحصيل الدراسي,الكلية,الاختصاص,أمر التعيين,المباشرة,المدرسة\n";
-      const csvRow = `${data.fullName},${data.motherName},${data.birthDate},${data.gender},${data.education},${data.institute},${data.specialization},${data.appointmentDate},${data.startDate},${data.school}`;
-      const blob = new Blob([csvHeader + csvRow], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "بيانات_الموظف.csv";
-      link.click();
-    });
-  </script>
 </body>
 </html>
